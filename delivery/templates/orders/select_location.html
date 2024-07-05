@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Select Location</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <style>
+        #map {
+            height: 400px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <h1>Select Location</h1>
+    <div id="map"></div>
+    <button id="save-location" disabled>Save Location</button>
+
+    <script>
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        const csrftoken = getCookie('csrftoken');
+
+        var map = L.map('map').setView([51.505, -0.09], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        var marker = L.marker([51.505, -0.09]).addTo(map);
+        var lat, lng, accuracy;
+
+        map.on('click', function(e) {
+            lat = e.latlng.lat.toFixed(6);  // Format to 6 decimal places
+            lng = e.latlng.lng.toFixed(6);  // Format to 6 decimal places
+            accuracy = 0.01;  // example accuracy value, adjust based on your needs
+            marker.setLatLng(e.latlng);
+
+            // Enable the save button after selecting a location
+            document.getElementById('save-location').disabled = false;
+        });
+
+        document.getElementById('save-location').addEventListener('click', function() {
+            const payload = {
+                latitude: lat,
+                longitude: lng,
+                accuracy: accuracy
+            };
+
+            console.log("Payload being sent:", payload);
+
+            fetch('/api/save-location/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrftoken
+                },
+                body: JSON.stringify(payload)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok ' + response.statusText);
+                }
+                return response.json();
+            })
+            .then(data => console.log(data))
+            .catch(error => console.error('Error:', error));
+        });
+    </script>
+</body>
+</html>
